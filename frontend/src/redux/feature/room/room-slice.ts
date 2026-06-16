@@ -1,8 +1,9 @@
 "use client";
 
 import { createSlice } from "@reduxjs/toolkit";
-import { createRoom, getJoinedRooms, getMyRooms, getPublicRooms } from "./room-action";
+import { createRoom, deleteRoom, getJoinedRooms, getMyRooms, getPublicRooms } from "./room-action";
 import { RoomState } from "./room-type";
+import { deleteRoomMember } from "../member/member-action";
 
 const initialState: RoomState = {
     myrooms: [],
@@ -20,7 +21,23 @@ const roomSlice = createSlice({
     initialState,
     reducers: {
         resetRoomError: (state) => {
-            state = initialState
+            state.error = null;
+        },
+        addMyRoom: (state, action) => {
+            state.myrooms = [action.payload, ...state.myrooms];
+            state.myRoomsTotalDocuments += 1;
+        },
+        removeMyRoom: (state, action) => {
+            state.myrooms = state.myrooms.filter((room) => room.uuid !== action.payload);
+            state.myRoomsTotalDocuments -= 1;
+        },
+        addJoinedRoom: (state, action) => {
+            state.joinedRooms = [action.payload, ...state.joinedRooms];
+            state.joinedRoomsTotalDocuments += 1;
+        },
+        removeJoinedRoom: (state, action) => {
+            state.joinedRooms = state.joinedRooms.filter((room) => room.uuid !== action.payload);
+            state.joinedRoomsTotalDocuments -= 1;
         },
     },
     extraReducers: (builder) => {
@@ -35,6 +52,14 @@ const roomSlice = createSlice({
             .addCase(createRoom.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+            })
+            .addCase(deleteRoom.fulfilled, (state, action) => {
+                state.myrooms = state.myrooms.filter((room) => room.uuid !== action.payload.uuid);
+                state.myRoomsTotalDocuments -= 1;
+            })
+            .addCase(deleteRoomMember.fulfilled, (state, action) => {
+                state.joinedRooms = state.joinedRooms.filter((room) => room.uuid !== action.payload.uuid);
+                state.joinedRoomsTotalDocuments -= 1;
             })
             .addCase(getMyRooms.pending, (state) => {
                 state.loading = true;
@@ -100,5 +125,5 @@ const roomSlice = createSlice({
     },
 });
 
-export const { resetRoomError } = roomSlice.actions;
+export const { resetRoomError, addMyRoom, removeMyRoom, addJoinedRoom, removeJoinedRoom } = roomSlice.actions;
 export default roomSlice.reducer;
