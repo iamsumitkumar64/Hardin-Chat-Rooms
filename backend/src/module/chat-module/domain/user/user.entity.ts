@@ -1,5 +1,4 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, Generated, OneToMany, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { RoomEntity } from "../room/room.entity";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, Generated, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('user')
 export class UserEntity {
@@ -11,9 +10,6 @@ export class UserEntity {
 
     @Column({ type: "varchar", nullable: false, unique: true })
     email: string;
-
-    @OneToMany(() => RoomEntity, (room) => room.creator)
-    rooms: RoomEntity[];
 
     @CreateDateColumn()
     created_at: Date;

@@ -26,8 +26,8 @@ async function create() {
 
     await chatDataSource.initialize();
 
-    // const bcryptService = new BcryptService();
-    // const hashedPassword = await bcryptService.hashPassword("123");
+    const bcryptService = new BcryptService();
+    const hashedPassword = await bcryptService.hashPassword("123");
 
     const queryRunner = chatDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -41,7 +41,7 @@ async function create() {
             const created_user = await queryRunner.manager.save(UserEntity, {
                 uuid: user.uuid,
                 email: user.email,// faker.internet.email(),
-                // password: hashedPassword,
+                password: hashedPassword,
                 name: user.name,// faker.person.fullName(),
             });
 
@@ -55,7 +55,6 @@ async function create() {
         console.error('❌ Something went wrong:', error);
     } finally {
         await queryRunner.release();
-        await chatDataSource.destroy();
     }
 }
 

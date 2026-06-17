@@ -6,7 +6,7 @@ import { InjectDataSource } from "@nestjs/typeorm";
 @Injectable()
 export class UserRepository extends Repository<UserEntity> {
     constructor(
-        @InjectDataSource(process.env.DB_POSTGRES_CHAT_SCHEMA || 'chat_schema')
+        @InjectDataSource( process.env.DB_POSTGRES_CHAT_SCHEMA || 'chat_schema')
         private readonly dataSource: DataSource,
     ) {
         super(UserEntity, dataSource.createEntityManager());
@@ -18,7 +18,7 @@ export class UserRepository extends Repository<UserEntity> {
     }
 
     async findByUuid(uuid: string) {
-        const user = await this.find({
+        const user = await this.findOne({
             where: {
                 uuid: uuid
             },
@@ -32,7 +32,7 @@ export class UserRepository extends Repository<UserEntity> {
     }
 
     async findByEmail(email: string) {
-        const user = await this.find({
+        const user = await this.findOne({
             where: {
                 email: email
             },

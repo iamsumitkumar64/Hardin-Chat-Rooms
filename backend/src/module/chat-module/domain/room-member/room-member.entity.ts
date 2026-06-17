@@ -1,5 +1,5 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, Generated, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { RoomEntity } from "../room/room.entity";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { RoomMemberRole } from "./room-member.enum";
 
 @Entity('room_member')
 export class RoomMemberEntity {
@@ -15,9 +15,12 @@ export class RoomMemberEntity {
     @Column({ type: "bool", default: false })
     is_online: boolean;
 
-    @ManyToOne(() => RoomEntity, (room) => room.members, { eager: true })
-    @JoinColumn({ name: "room_uuid" })
-    room: RoomEntity;
+    @Column({
+        type: 'enum',
+        enum: RoomMemberRole,
+        default: RoomMemberRole.USER,
+    })
+    role: RoomMemberRole;
 
     @CreateDateColumn()
     created_at: Date;

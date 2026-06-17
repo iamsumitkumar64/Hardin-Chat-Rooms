@@ -1,26 +1,20 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { CreateRoomDto } from "./create-room.dto";
-import type { Request } from "express";
 import { RoomRepository } from "src/module/chat-module/infrastructure/repository/room.repository";
-import { SocketService } from "src/common/infrastruture/socket/socket.service";
-import { SocketEventNameEnum } from "src/common/infrastruture/socket/socket.enum";
+import { RoomMemberRepository } from "src/module/chat-module/infrastructure/repository/room-member.repository";
+import { RoomMemberRole } from "src/module/chat-module/domain/room-member/room-member.enum";
+import { RoomCreatedMQEventPayload } from "src/module/chat-module/infrastructure/rabbit-mq/rabbit-mq.type";
 
 @Injectable()
 export class CreateRoomService {
+
     constructor(
-        private readonly repository: RoomRepository,
-        private readonly socketService: SocketService,
+        private readonly roomRepository: RoomRepository,
+        private readonly roomMemberRepository: RoomMemberRepository,
     ) { }
 
-    async handle(req: Request, body: CreateRoomDto) {
-        const isRoomWithSameNameExists = await this.repository.findByCreatorUuidAndName(req.user.uuid, body.name);
-        if (isRoomWithSameNameExists) {
-            throw new BadRequestException("Room With Same Name Exists");
-        }
-
-        const room = await this.repository.createRoom({ ...body, creator_uuid: req.user.uuid });
-
-        await this.socketService.emitToUser(req.user.uuid, SocketEventNameEnum.ROOM_CREATED, room);
+    async handle(body: RoomCreatedMQEventPayload) {
+        const newRoom = await this.roomRepository.createRoom({ ...body });
+        await this.roomMemberRepository.createRoomMember({ role: RoomMemberRole.CREATOR, room_uuid: newRoom.uuid, user_uuid: body.creator_uuid });
         return;
     }
 }

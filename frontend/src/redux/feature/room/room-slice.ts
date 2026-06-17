@@ -2,7 +2,7 @@
 
 import { createSlice } from "@reduxjs/toolkit";
 import { createRoom, deleteRoom, getJoinedRooms, getMyRooms, getPublicRooms } from "./room-action";
-import { RoomState } from "./room-type";
+import { Room, RoomState } from "./room-type";
 import { deleteRoomMember } from "../member/member-action";
 
 const initialState: RoomState = {
@@ -24,15 +24,24 @@ const roomSlice = createSlice({
             state.error = null;
         },
         addMyRoom: (state, action) => {
-            state.myrooms = [action.payload, ...state.myrooms];
+            state.myrooms.unshift(action.payload as Room);
             state.myRoomsTotalDocuments += 1;
+
+            state.publicRooms.unshift(action.payload as Room);
+            state.publicRoomsTotalDocuments += 1;
         },
         removeMyRoom: (state, action) => {
             state.myrooms = state.myrooms.filter((room) => room.uuid !== action.payload);
             state.myRoomsTotalDocuments -= 1;
+
+            state.joinedRooms = state.joinedRooms.filter((room) => room.uuid !== action.payload);
+            state.joinedRoomsTotalDocuments -= 1;
+
+            state.publicRooms = state.publicRooms.filter((room) => room.uuid !== action.payload);
+            state.publicRoomsTotalDocuments -= 1;
         },
         addJoinedRoom: (state, action) => {
-            state.joinedRooms = [action.payload, ...state.joinedRooms];
+            state.joinedRooms.unshift(action.payload as Room);
             state.joinedRoomsTotalDocuments += 1;
         },
         removeJoinedRoom: (state, action) => {
@@ -58,7 +67,7 @@ const roomSlice = createSlice({
                 state.myRoomsTotalDocuments -= 1;
             })
             .addCase(deleteRoomMember.fulfilled, (state, action) => {
-                state.joinedRooms = state.joinedRooms.filter((room) => room.uuid !== action.payload.uuid);
+                state.joinedRooms = state.joinedRooms.filter((room) => room.uuid !== action.payload.room_uuid);
                 state.joinedRoomsTotalDocuments -= 1;
             })
             .addCase(getMyRooms.pending, (state) => {
@@ -112,9 +121,17 @@ const roomSlice = createSlice({
             })
             .addCase(getJoinedRooms.fulfilled, (state, action) => {
                 state.loading = false;
-                // if (action.meta.arg.offset == 0) {
-                state.joinedRooms = action.payload.data;
-                // }
+
+                if (action.payload.offset === 0) {
+                    state.joinedRooms = action.payload.data;
+                } else {
+                    const mergedRooms = [
+                        ...state.joinedRooms,
+                        ...action.payload.data,
+                    ];
+                    state.joinedRooms = Array.from(new Map(mergedRooms.map((room) => [room.uuid, room])).values());
+                }
+
                 state.joinedRoomsTotalDocuments = action.payload.totalDocuments;
                 state.error = null;
             })

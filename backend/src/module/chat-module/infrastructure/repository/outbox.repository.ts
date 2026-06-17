@@ -7,7 +7,7 @@ import { OutboxStatusEnum } from "../../domain/outbox/outbox.enum";
 @Injectable()
 export class OutboxRepository extends Repository<OutboxEntity> {
     constructor(
-        @InjectDataSource(process.env.DB_POSTGRES_CHAT_SCHEMA || 'chat_schema')
+        @InjectDataSource( process.env.DB_POSTGRES_CHAT_SCHEMA || 'chat_schema')
         private readonly dataSource: DataSource,
     ) {
         super(OutboxEntity, dataSource.createEntityManager());

@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { DataSource, Not, Repository } from "typeorm";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { RoomEntity } from "../../domain/room/room.entity";
-import { UserEntity } from "../../domain/user/user.entity";
 
 @Injectable()
 export class RoomRepository extends Repository<RoomEntity> {
@@ -23,9 +22,6 @@ export class RoomRepository extends Repository<RoomEntity> {
             where: {
                 uuid: uuid
             },
-            relations: {
-                creator: true
-            }
         });
         return room;
     }
@@ -36,75 +32,8 @@ export class RoomRepository extends Repository<RoomEntity> {
                 creator_uuid: creator_uuid,
                 uuid: uuid
             },
-            relations: {
-                creator: true
-            }
         });
         return room;
-    }
-
-    async findByCreatorUuidAndName(creator_uuid: string, name: string) {
-        const room = await this.findOne({
-            where: {
-                creator_uuid: creator_uuid,
-                name: name
-            },
-            relations: {
-                creator: true
-            }
-        });
-        return room;
-    }
-
-    async getRoomListing(user: Partial<UserEntity>, offset?: number, limit?: number) {
-        const [data, total] = await this.findAndCount({
-            where: {
-                creator_uuid: user.uuid
-            },
-            relations: {
-                creator: true,
-            },
-            order: {
-                created_at: 'DESC'
-            },
-            skip: offset || Number(process.env.page_offset) || 0,
-            take: limit || Number(process.env.page_limit) || 10
-        });
-
-        return { data, total };
-    }
-
-    async getRoomJoinedListing(user: Partial<UserEntity>, offset?: number, limit?: number) {
-        const [data, total] = await this.findAndCount({
-            where: {
-                members: { user_uuid: user.uuid }
-            },
-            relations: {
-                creator: true,
-            },
-            order: {
-                created_at: 'DESC'
-            },
-            skip: offset || Number(process.env.page_offset) || 0,
-            take: limit || Number(process.env.page_limit) || 10
-        });
-
-        return { data, total };
-    }
-
-    async getPublicRoomListing(offset?: number, limit?: number) {
-        const [data, total] = await this.findAndCount({
-            relations: {
-                creator: true,
-            },
-            order: {
-                created_at: 'DESC'
-            },
-            skip: offset || Number(process.env.page_offset) || 0,
-            take: limit || Number(process.env.page_limit) || 10
-        });
-
-        return { data, total };
     }
 
     async deleteRoom(uuid: string) {

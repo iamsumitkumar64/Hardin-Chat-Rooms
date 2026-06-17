@@ -14,8 +14,8 @@ export class RegisterUserService {
     })
     async handle(payload: UserRegisteredMQEventPayload) {
         const isUserExists = await this.repository.findByEmail(payload.email);
-        if (isUserExists.length) {
-            console.warn(`Duplicate skipped: ${isUserExists[0].email}`);
+        if (isUserExists) {
+            console.warn(`Duplicate skipped: ${isUserExists.email}`);
             return;
         }
 

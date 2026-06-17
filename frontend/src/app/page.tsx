@@ -5,22 +5,25 @@ import styles from "./home.module.css";
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks.ts";
 import { enqueueSnackbar } from "notistack";
-import { getPublicRooms } from "@/redux/feature/room/room-action";
+import { getJoinedRooms, getPublicRooms } from "@/redux/feature/room/room-action";
 import { RootState } from "@/redux/store";
 import InfiniteScroll from "react-infinite-scroll-component";
 import type { Room } from "@/redux/feature/room/room-type";
 import { createRoomMember } from "@/redux/feature/member/member-action";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
-  const { publicRooms, publicRoomsTotalDocuments } = useAppSelector((state: RootState) => state.roomReducer);
+  const { publicRooms, publicRoomsTotalDocuments, joinedRooms } = useAppSelector((state: RootState) => state.roomReducer);
   const { user } = useAppSelector((state: RootState) => state.authReducer);
   const [offset, setOffset] = useState(Number(process.env.NEXT_PUBLIC_PAGE_OFFSET) || 0);
   const limit = Number(process.env.NEXT_PUBLIC_PAGE_LIMIT) || 10;
 
   useEffect(() => {
-    if (!fetchRooms.length) {
-       dispatch(getPublicRooms({ limit, offset: 0, })).unwrap();
+    if (!publicRooms.length) {
+      dispatch(getJoinedRooms({ limit, offset: 0, })).unwrap();
+      dispatch(getPublicRooms({ limit, offset: 0, })).unwrap();
     }
   }, []);
 
@@ -69,6 +72,7 @@ export default function Home() {
         >
           <Box className={styles.roomWrapper}>
             {publicRooms && publicRooms.map((room: Room) => {
+              const isJoined = joinedRooms ? joinedRooms.find((joinRoom) => joinRoom.uuid === room.uuid) : [];
               return (
                 <Card
                   key={room.uuid}
@@ -84,9 +88,19 @@ export default function Home() {
                     user &&
                     <Button
                       onClick={() => handleJoin(room.uuid)}
+                      disabled={!!isJoined}
                     >
-                      Join
-                    </Button>}
+                      {
+                        !isJoined ?
+                          'Join' : 'Already joined'
+                      }
+                    </Button>
+                  }
+                  <Button
+                    onClick={() => router.push(`/room/${room.uuid}`)}
+                  >
+                    View Room
+                  </Button>
                 </Card>
               );
             })}
