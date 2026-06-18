@@ -2,6 +2,7 @@
 
 import { Avatar, Box, Button, Card, CardContent, CircularProgress, Container, Typography } from "@mui/material";
 import styles from "./room.module.css";
+import bannerStyles from "../../app/banner.module.css";
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks.ts";
 import { enqueueSnackbar } from "notistack";
@@ -12,6 +13,7 @@ import type { Room } from "@/redux/feature/room/room-type";
 import DeleteIcon from '@mui/icons-material/Delete';
 import { deleteRoomMember } from "@/redux/feature/member/member-action";
 import { useRouter } from "next/navigation";
+import { randomImageUrl } from "@/utils/random";
 
 export default function JoinedRoomComp() {
     const router = useRouter();
@@ -49,7 +51,7 @@ export default function JoinedRoomComp() {
     };
 
     return (
-        <Container maxWidth="xl" className={styles.container}>
+        <Box className={styles.container}>
             <Box className={styles.header}>
                 <Typography variant="h4" className={styles.heading}>
                     Joined Rooms Listing
@@ -77,24 +79,25 @@ export default function JoinedRoomComp() {
                                     className={styles.card}
                                     elevation={2}
                                 >
+                                    <Box className={bannerStyles.banner} style={{ backgroundImage: randomImageUrl() }} />
                                     <CardContent className={styles.cardContent}>
                                         <Typography className={styles.roomName}>{room.name}</Typography>
                                         <Typography className={styles.description}>{room.description}</Typography>
+
+                                        <Button
+                                            onClick={() => router.push(`/room/${room.uuid}`)}
+                                        >
+                                            View Room
+                                        </Button>
+
+                                        <Button
+                                            className={styles.deleteRoom}
+                                            startIcon={<DeleteIcon />}
+                                            onClick={() => handleRemoveMember(room.uuid)}
+                                        >
+                                            Exit Room
+                                        </Button>
                                     </CardContent>
-
-                                    <Button
-                                        onClick={() => router.push(`/room/${room.uuid}`)}
-                                    >
-                                        View Room
-                                    </Button>
-
-                                    <Button
-                                        className={styles.deleteRoom}
-                                        startIcon={<DeleteIcon />}
-                                        onClick={() => handleRemoveMember(room.uuid)}
-                                    >
-                                        Exit Room
-                                    </Button>
                                 </Card>
                             );
                         })}
@@ -102,6 +105,6 @@ export default function JoinedRoomComp() {
                 </InfiniteScroll>
             </Box>
 
-        </Container>
+        </Box>
     );
 }

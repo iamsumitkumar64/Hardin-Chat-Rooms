@@ -12,15 +12,15 @@ export class RoomMemberEntity {
     @Column({ type: "uuid", nullable: false })
     user_uuid: string;
 
-    @Column({ type: "bool", default: false })
-    is_online: boolean;
-
     @Column({
         type: 'enum',
         enum: RoomMemberRole,
         default: RoomMemberRole.USER,
     })
     role: RoomMemberRole;
+
+    @Column({ type: "bool", default: false })
+    is_writer: boolean;
 
     @CreateDateColumn()
     created_at: Date;

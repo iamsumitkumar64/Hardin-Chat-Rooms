@@ -4,7 +4,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "@/redux/store";
 import { RoomChatCreatePayload } from "./chat-type";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8090";
 const LIMIT = Number(process.env.NEXT_PUBLIC_PAGE_LIMIT) || 10;
 const OFFSET = Number(process.env.NEXT_PUBLIC_PAGE_OFFSET) || 0;
 
@@ -41,7 +41,7 @@ export const createRoomChat = createAsyncThunk<
 );
 
 export const getRoomChats = createAsyncThunk<
-    { data: any, totalDocuments: number, message: string, limit: number, offset: number },
+    { data: any, totalDocuments: number, room_uuid: string, message: string, limit: number, offset: number },
     { room_uuid: string, limit?: number; offset?: number },
     { state: RootState }
 >(
@@ -70,8 +70,8 @@ export const getRoomChats = createAsyncThunk<
             if (!res.ok) {
                 throw new Error(result.message);
             }
-            console.log(JSON.stringify(result));
-            return result;
+
+            return { ...result, room_uuid: room_uuid };
         } catch (error: any) {
             return rejectWithValue(error.message);
         }

@@ -14,6 +14,11 @@ import { enqueueSnackbar } from "notistack";
 import dynamic from 'next/dynamic';
 import { createRoomChat, deleteRoomChat, getRoomChats } from "@/redux/feature/chat/chat-action";
 import DeleteIcon from '@mui/icons-material/Delete';
+import { connectUnAuthSocket } from "@/service/socket/socket";
+import { SocketEventSubscribeEnum } from "@/service/socket/socket-event.enum";
+import { addChat, removeChat } from "@/redux/feature/chat/chat-slice";
+import { RoomChat } from "@/redux/feature/chat/chat-type";
+let unauth_socket: any;
 
 // Dynamically import the EmojiPicker to disable SSR
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -25,11 +30,11 @@ export default function SpecificRoomChat() {
   const { roomMembers } = useAppSelector((state: RootState) => state.roomMemberReducer);
   const { user } = useAppSelector((state: RootState) => state.authReducer);
   const { roomChats, roomChatsTotalDocuments, loading } = useAppSelector((state: RootState) => state.chatReducer);
-  
+
   const members = roomMembers?.[room_uuid];
   const chats = roomChats?.[room_uuid] || [];
   const totalChats = roomChatsTotalDocuments?.[room_uuid] || 0;
-  
+
   const member = roomMembers?.[room_uuid]?.find((member) => member.user_uuid == user?.uuid);
   const [offset, setOffset] = useState(0);
   const limit = Number(process.env.NEXT_PUBLIC_PAGE_LIMIT) || 10;
@@ -40,6 +45,32 @@ export default function SpecificRoomChat() {
     dispatch(getRoomMembers({ room_uuid: room_uuid, limit: 0, offset: 0 })).unwrap();
     dispatch(getRoomChats({ room_uuid: room_uuid, limit: limit, offset: 0 })).unwrap();
   }, [room_uuid]);
+
+  useEffect(() => {
+    unauth_socket = connectUnAuthSocket();
+
+    if (room_uuid) {
+      unauth_socket.emit(SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CONNECT, { room_uuid });
+
+      const handleSocketNewChat = (data: any) => {
+        console.log("Received :", SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_CREATED, data);
+        dispatch(addChat(data));
+      };
+
+      const handleSocketDeleteChat = (data: any) => {
+        console.log("Received :", SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_DELETED, data);
+        dispatch(removeChat(data));
+      };
+
+      unauth_socket.on(SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_CREATED, handleSocketNewChat);
+      unauth_socket.on(SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_DELETED, handleSocketDeleteChat);
+
+      return () => {
+        unauth_socket.off(SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_CREATED, handleSocketNewChat);
+      };
+    }
+  }, [room_uuid, dispatch]);
+
 
   const fetchMoreData = () => {
     const nextOffset = offset + limit;
@@ -56,7 +87,8 @@ export default function SpecificRoomChat() {
 
   const handleSend = async () => {
     try {
-      if (!message.trim()) {
+      if (!message.trim() || message.length > 2000) {
+        enqueueSnackbar("message length should be 0-2000", { variant: "warning" });
         return;
       }
       if (!member?.uuid) {
@@ -64,7 +96,7 @@ export default function SpecificRoomChat() {
         return;
       }
 
-      await dispatch(createRoomChat({ member_uuid: member?.uuid, msg: message, room_uuid })).unwrap();
+      await dispatch(createRoomChat({ member_uuid: member?.uuid, message: message, room_uuid })).unwrap();
 
       setIsEmojiPickerOpen(false);
       setMessage('');
@@ -91,7 +123,7 @@ export default function SpecificRoomChat() {
   };
 
   return (
-    <Container maxWidth="xl" className={styles.container}>
+    <Box className={styles.container}>
       <Box className={styles.header}>
         <Typography variant="h4" className={styles.heading}>
           {members?.[0]?.room?.name || "Specific Room Title"} Chat's
@@ -109,81 +141,84 @@ export default function SpecificRoomChat() {
           hasMore={chats.length < totalChats}
           loader={<Box className={styles.loader}><CircularProgress size={30} /></Box>}
           inverse={true}
-          endMessage={<Typography className={styles.endMessage}>Yay! You have seen it all</Typography>}
+          // endMessage={<Typography className={styles.endMessage}>Yay! You have seen it all</Typography>}
           scrollableTarget="scrollableDiv"
-          style={{ display: 'flex', flexDirection: 'column-reverse' }}
         >
           <Box className={styles.roomChatWrapper}>
-            {chats.map((chat) => (
-              <Box 
-                key={chat.uuid} 
-                className={`${styles.chatMessage} ${chat.member?.user_uuid === user?.uuid ? styles.myMessage : styles.otherMessage}`}
-              >
-                <Box className={styles.messageContent}>
-                  <Typography variant="caption" className={styles.senderName}>
-                    {chat.member?.user_uuid === user?.uuid ? 'You' : `User ${chat.member?.user_uuid.slice(0, 4)}`}
-                  </Typography>
-                  <Typography className={styles.messageText}>{chat.msg}</Typography>
-                  <Box className={styles.messageFooter}>
-                    <Typography variant="caption" className={styles.messageTime}>
-                      {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {chats.map((chat: RoomChat) => {
+              const member = members.find((member) => member.user_uuid == chat.member?.user_uuid);
+
+              return (
+                <Box
+                  key={chat.uuid}
+                  className={`${styles.chatMessage} ${chat.member?.user_uuid === user?.uuid ? styles.myMessage : styles.otherMessage}`}
+                >
+                  <Box className={styles.messageContent}>
+                    <Typography variant="caption" className={chat.member?.user_uuid === user?.uuid ? styles.myEmail : styles.senderEmail}>
+                      {member ? member.user.email : 'N/A'}
                     </Typography>
-                    {chat.member?.user_uuid === user?.uuid && (
-                      <IconButton size="small" onClick={() => handleDeleteChat(chat.uuid)} className={styles.deleteBtn}>
-                        <DeleteIcon fontSize="inherit" />
-                      </IconButton>
-                    )}
+                    <Typography className={styles.messageText}>{chat.message}</Typography>
+                    <Box className={styles.messageFooter}>
+                      <Typography variant="caption" className={styles.messageTime}>
+                        {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                      {chat.member?.user_uuid === user?.uuid && (
+                        <IconButton size="small" onClick={() => handleDeleteChat(chat.uuid)} className={styles.deleteBtn}>
+                          <DeleteIcon fontSize="inherit" />
+                        </IconButton>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
-            ))}
+              );
+            })}
           </Box>
         </InfiniteScroll>
-      </Box>
 
-      <Box className={styles.emojiPickerBox}>
-        {isEmojiPickerOpen && (
-          <EmojiPicker onEmojiClick={onEmojiClick} />
-        )}
-      </Box>
-
-      {
-        member?.user_uuid
-        &&
-        <Box className={styles.chatContainer}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              className={`${styles.actionButton} ${styles.sendButton}`}
-              size="small"
-              onClick={togglePicker}
-            >
-              <EmojiEmotionsIcon />
-            </IconButton>
-          </Box>
-
-          <Box className={styles.inputWrapper}>
-            <TextField
-              className={styles.inputField}
-              placeholder="Type a message"
-              variant="standard"
-              multiline
-              minRows={1}
-              maxRows={10}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-            />
-          </Box>
-
-          <IconButton
-            className={`${styles.actionButton} ${(message.trim() && message.length <= 2000) ? styles.sendButton : ''}`}
-            onClick={handleSend}
-            disabled={!message.trim() || message.length > 2000}
-          >
-            <SendIcon fontSize="small" />
-          </IconButton>
+        <Box className={styles.emojiPickerBox}>
+          {isEmojiPickerOpen && (
+            <EmojiPicker onEmojiClick={onEmojiClick} />
+          )}
         </Box>
-      }
-    </Container>
+
+        {
+          member?.user_uuid
+          &&
+          <Box className={styles.chatContainer}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton
+                className={`${styles.actionButton} ${styles.sendButton}`}
+                size="small"
+                onClick={togglePicker}
+              >
+                <EmojiEmotionsIcon />
+              </IconButton>
+            </Box>
+
+            <Box className={styles.inputWrapper}>
+              <TextField
+                className={styles.inputField}
+                placeholder="Type a message"
+                variant="standard"
+                multiline
+                minRows={1}
+                maxRows={10}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+              />
+            </Box>
+
+            <IconButton
+              className={`${styles.actionButton} ${(message.trim() && message.length <= 2000) ? styles.sendButton : ''}`}
+              onClick={handleSend}
+            >
+              <SendIcon fontSize="small" />
+            </IconButton>
+
+          </Box>
+        }
+      </Box >
+    </Box >
   );
 }

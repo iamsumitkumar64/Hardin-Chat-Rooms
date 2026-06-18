@@ -1,6 +1,9 @@
 import {
     OnGatewayConnection,
     OnGatewayDisconnect,
+    SubscribeMessage,
+    ConnectedSocket,
+    MessageBody,
     WebSocketGateway,
     WebSocketServer,
 } from '@nestjs/websockets';
@@ -8,11 +11,13 @@ import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { JwtHelperService } from 'src/module/user-module/infrastructure/services/jwt.service';
 import { UserRepository } from 'src/module/user-module/infrastructure/repository/user.repository';
+import { SocketEventSubscribeEnum } from './socket.enum';
 
 @Injectable()
 @WebSocketGateway({
     cors: {
         origin: '*',
+        methods: ['GET', 'POST', 'DELETE', 'PATCH'],
     },
 })
 export class SocketService implements OnGatewayConnection, OnGatewayDisconnect {
@@ -31,7 +36,7 @@ export class SocketService implements OnGatewayConnection, OnGatewayDisconnect {
         try {
             const token = client.handshake.auth.token || client.handshake.headers.authorization;
             if (!token) {
-                client.disconnect();
+                console.log(`Unauth Socket Request Connected`);
                 return;
             }
 
@@ -60,11 +65,27 @@ export class SocketService implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
-    // send msg to receiver only
+    // send message to receiver only
     async emitToUser(userUuid: string, event: string, data: any) {
         const socketId = this.activeUsers.get(userUuid);
         if (socketId) {
+            console.log(`Socket event fired to user: ${event}`);
             this.server.to(socketId).emit(event, data);
         }
+    }
+
+    @SubscribeMessage(SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CONNECT)
+    handleRoomConnection(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket
+    ) {
+        console.log(`Unauth Room Connected: ${data.room_uuid}`);
+        client.join(data.room_uuid);
+    }
+
+    // send message to room
+    async emitToRoom(room_uuid: string, event: string, data: any) {
+        console.log(`Socket event fired in room: ${event}`);
+        this.server.to(room_uuid).emit(event, data);
     }
 }

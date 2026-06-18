@@ -2,6 +2,7 @@
 
 import { Box, Button, Card, CardContent, CircularProgress, Container, Typography } from "@mui/material";
 import styles from "./room.module.css";
+import bannerStyles from "../../app/banner.module.css";
 import { useEffect, useState } from "react";
 import CreateRoomModal from "@/component/create-room-modal/create-room-modal";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks.ts";
@@ -12,6 +13,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import type { Room } from "@/redux/feature/room/room-type";
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useRouter } from "next/navigation";
+import { randomImageUrl } from "@/utils/random";
 
 export default function MyRoomComp() {
     const router = useRouter();
@@ -40,7 +42,7 @@ export default function MyRoomComp() {
         }
     };
 
-    const handleAddAddressClose = () => {
+    const handleAddRoomClose = () => {
         setOpenCreateRoomModal(false);
     };
 
@@ -54,7 +56,7 @@ export default function MyRoomComp() {
     };
 
     return (
-        <Container maxWidth="xl" className={styles.container}>
+        <Box className={styles.container}>
             <Box className={styles.header}>
                 <Typography variant="h4" className={styles.heading}>
                     Your Rooms Listing
@@ -88,8 +90,8 @@ export default function MyRoomComp() {
                                     className={styles.card}
                                     elevation={2}
                                 >
-                                    <CardContent className={styles.cardContent}
-                                    >
+                                    <Box className={bannerStyles.banner} style={{ backgroundImage: randomImageUrl() }} />
+                                    <CardContent className={styles.cardContent}>
                                         <Typography className={styles.roomName}>{room.name}</Typography>
                                         <Typography className={styles.description}>{room.description}</Typography>
 
@@ -114,7 +116,7 @@ export default function MyRoomComp() {
                 </InfiniteScroll>
             </Box>
 
-            <CreateRoomModal isOpen={openCreateRoomModal} onClose={handleAddAddressClose} />
-        </Container>
+            <CreateRoomModal isOpen={openCreateRoomModal} onClose={handleAddRoomClose} />
+        </Box>
     );
 }

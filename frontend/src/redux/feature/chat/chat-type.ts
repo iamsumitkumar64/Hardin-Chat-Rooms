@@ -3,7 +3,7 @@ export interface RoomChat {
     member_uuid: string;
     room_uuid: string;
     parent_uuid: string | null;
-    msg: string;
+    message: string;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -11,8 +11,8 @@ export interface RoomChat {
         uuid: string;
         user_uuid: string;
         room_uuid: string;
-        is_online: boolean;
         role: string;
+        is_writer: boolean;
     };
     room: {
         uuid: string;
@@ -25,7 +25,7 @@ export interface RoomChatCreatePayload {
     member_uuid: string;
     room_uuid: string;
     parent_uuid?: string;
-    msg: string;
+    message: string;
 }
 
 export interface RoomChatState {

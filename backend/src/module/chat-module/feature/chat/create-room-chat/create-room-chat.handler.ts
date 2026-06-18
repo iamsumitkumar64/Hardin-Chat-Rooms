@@ -3,7 +3,7 @@ import { CreateRoomChatDto } from "./create-room-chat.dto";
 import type { Request } from "express";
 import { RoomMemberRepository } from "src/module/chat-module/infrastructure/repository/room-member.repository";
 import { RoomChatRepository } from "src/module/chat-module/infrastructure/repository/room-chat.repository";
-import { SocketEventNameEnum } from "src/common/infrastruture/socket/socket.enum";
+import { SocketEventNameEnum, SocketEventSubscribeEnum } from "src/common/infrastruture/socket/socket.enum";
 import { SocketService } from "src/common/infrastruture/socket/socket.service";
 
 @Injectable()
@@ -19,6 +19,9 @@ export class CreateRoomChatService {
         if (!member) {
             throw new BadRequestException("Member not found");
         }
+        if (!member.is_writer) {
+            throw new BadRequestException("Not Allowed to write in Room");
+        }
 
         const newChat = await this.roomChatRepository.createRoomChat({
             ...body,
@@ -27,6 +30,7 @@ export class CreateRoomChatService {
         const chat = await this.roomChatRepository.findByUuid(newChat.uuid);
 
         await this.socketService.emitToUser(req.user.uuid, SocketEventNameEnum.ROOM_CHAT_CREATED, chat);
+        await this.socketService.emitToRoom(body.room_uuid, SocketEventSubscribeEnum.SUBSCRIBE_ROOM_CHAT_CREATED, chat);
         return;
     }
 }

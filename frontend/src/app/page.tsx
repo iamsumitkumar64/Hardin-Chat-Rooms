@@ -2,6 +2,7 @@
 
 import { Avatar, Box, Button, Card, CardContent, CircularProgress, Container, Typography } from "@mui/material";
 import styles from "./home.module.css";
+import bannerStyles from "./banner.module.css";
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks.ts";
 import { enqueueSnackbar } from "notistack";
@@ -11,6 +12,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import type { Room } from "@/redux/feature/room/room-type";
 import { createRoomMember } from "@/redux/feature/member/member-action";
 import { useRouter } from "next/navigation";
+import { randomImageUrl } from "@/utils/random";
 
 export default function Home() {
   const router = useRouter();
@@ -50,7 +52,7 @@ export default function Home() {
   };
 
   return (
-    <Container maxWidth="xl" className={styles.container}>
+    <Box className={styles.container}>
       <Box className={styles.header}>
         <Typography variant="h4" className={styles.heading}>
           Public Rooms Listing
@@ -79,28 +81,29 @@ export default function Home() {
                   className={styles.card}
                   elevation={2}
                 >
+                  <Box className={bannerStyles.banner} style={{ backgroundImage: randomImageUrl() }} />
                   <CardContent className={styles.cardContent}>
                     <Typography className={styles.roomName}>{room.name}</Typography>
                     <Typography className={styles.description}>{room.description}</Typography>
-                  </CardContent>
 
-                  {
-                    user &&
+                    {
+                      user &&
+                      <Button
+                        onClick={() => handleJoin(room.uuid)}
+                        disabled={!!isJoined}
+                      >
+                        {
+                          !isJoined ?
+                            'Join' : 'Already joined'
+                        }
+                      </Button>
+                    }
                     <Button
-                      onClick={() => handleJoin(room.uuid)}
-                      disabled={!!isJoined}
+                      onClick={() => router.push(`/room/${room.uuid}`)}
                     >
-                      {
-                        !isJoined ?
-                          'Join' : 'Already joined'
-                      }
+                      View Room
                     </Button>
-                  }
-                  <Button
-                    onClick={() => router.push(`/room/${room.uuid}`)}
-                  >
-                    View Room
-                  </Button>
+                  </CardContent>
                 </Card>
               );
             })}
@@ -108,6 +111,6 @@ export default function Home() {
         </InfiniteScroll>
       </Box>
 
-    </Container>
+    </Box>
   );
 }

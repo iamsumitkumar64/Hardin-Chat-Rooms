@@ -1,15 +1,18 @@
 "use client";
 
-import { Avatar, Box, Button, Card, CardContent, CircularProgress, Container, Typography } from "@mui/material";
+import { Avatar, Box, Button, Card, CardContent, CircularProgress, Container, Modal, Typography } from "@mui/material";
 import styles from "./room.module.css";
+import bannerStyles from "../../banner.module.css";
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks.ts";
 import { getRoomMembers } from "@/redux/feature/member/member-action";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RootState } from "@/redux/store";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { RoomMember } from "@/redux/feature/member/member-type";
 import { enqueueSnackbar } from "notistack";
+import LinkShareComp from "@/component/link-share-comp/link-share-comp";
+import { randomImageUrl } from "@/utils/random";
 
 export default function SpecificRoom() {
   const dispatch = useAppDispatch();
@@ -21,6 +24,13 @@ export default function SpecificRoom() {
   const total_members = roomMembersTotalDocuments?.[room_uuid];
   const [offset, setOffset] = useState(Number(process.env.NEXT_PUBLIC_PAGE_OFFSET) || 0);
   const limit = Number(process.env.NEXT_PUBLIC_PAGE_LIMIT) || 10;
+  const [isLinkOpen, setIsLinkOpen] = useState<boolean>(false);
+
+  const pathname = usePathname();
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8090";
+  const searchParams = useSearchParams();
+  const shareUrl = `${BACKEND_URL}${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const title = 'Awesome Room Page please visit once';
 
   useEffect(() => {
     dispatch(getRoomMembers({ room_uuid: room_uuid, limit: 0, offset: 0 })).unwrap();
@@ -40,10 +50,10 @@ export default function SpecificRoom() {
   };
 
   return (
-    <Container maxWidth="xl" className={styles.container}>
+    <Box className={styles.container}>
       <Box className={styles.header}>
         <Typography variant="h4" className={styles.heading}>
-          {members?.[0] ? members[0].room.name : "Specific Room Title"}
+          {members?.[0] ? members[0].room.name : "Specific Room"}'s Members
         </Typography>
 
         <Typography className={styles.subHeading}>
@@ -53,10 +63,16 @@ export default function SpecificRoom() {
 
       <Box className={styles.sideButtonCard}>
         <Button
-          className={styles.deleteRoom}
           onClick={() => router.push(`/room/${room_uuid}/chat`)}
         >
           View Chat
+        </Button>
+
+        <Button
+          className={styles.deleteRoom}
+          onClick={() => setIsLinkOpen(!isLinkOpen)}
+        >
+          Share Room
         </Button>
       </Box>
 
@@ -77,6 +93,7 @@ export default function SpecificRoom() {
                   className={styles.card}
                   elevation={2}
                 >
+                  <Box className={bannerStyles.banner} style={{ backgroundImage: randomImageUrl() }} />
                   <Avatar>
                     {member.user.name ? member.user.name.charAt(0).toUpperCase() : '?'}
                   </Avatar>
@@ -92,6 +109,8 @@ export default function SpecificRoom() {
           </Box>
         </InfiniteScroll>
       </Box>
-    </Container>
+
+      <LinkShareComp open={isLinkOpen} onClose={() => setIsLinkOpen(false)} data={{ shareUrl: shareUrl, title: title }} />
+    </Box>
   );
 }
